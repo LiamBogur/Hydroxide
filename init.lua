@@ -5,6 +5,7 @@ if oh then
 end
 
 local web = true
+local user = "Upbolt" -- change if you're using a fork
 local importCache = {}
 
 -- local read, result = pcall(readfile, "ohaux.lua")
@@ -63,7 +64,7 @@ local globalMethods = {
     getMenv = getmenv or getsenv,
     getContext = getthreadcontext or get_thread_context or (syn and syn.get_thread_identity),
     getConnections = get_signal_cons or getconnections,
-    getScriptClosure = get_script_function or (getscriptclosure and not is_sirhurt_closure),
+    getScriptClosure = nil, -- (removed until exploits fix) get_script_function or getscriptclosure,
     getNamecallMethod = getnamecallmethod or get_namecall_method,
     getCallingScript = getcallingscript or get_calling_script,
     getLoadedModules = getloadedmodules or get_loaded_modules,
@@ -80,7 +81,7 @@ local globalMethods = {
     setContext = setthreadcontext or set_thread_context or (syn and syn.set_thread_identity),
     setUpvalue = debug.setupvalue or setupvalue or setupval,
     setStack = debug.setstack or setstack,
-    setReadOnly = setreadonly or make_readonly,
+    setReadOnly = setreadonly or (make_writeable and function(table, readonly) if readonly then make_readonly(table) else make_writeable(table) end end),
     isLClosure = islclosure or is_l_closure or (iscclosure and function(closure) return not iscclosure(closure) end),
     isReadOnly = isreadonly or is_readonly,
     isXClosure = is_synapse_function or issentinelclosure or is_protosmasher_closure or is_sirhurt_closure or checkclosure,
@@ -158,11 +159,24 @@ environment.oh = {
     end
 }
 
-if getConnections then
+if getConnections then 
     for __, connection in pairs(getConnections(game:GetService("ScriptContext").Error)) do
+
+        local conn = getrawmetatable(connection)
+        local old = conn.__index
+        if PROTOSMASHER_LOADED ~= nil then setWriteable(conn) else setReadOnly(conn, false) end
+        c.__index = newcclosure(function(t, k)
+            if k == "Connected" then
+                return true
+            end
+            return old(t, k)
+        end)
+
         if PROTOSMASHER_LOADED ~= nil then
+            setReadOnly(conn)
             connection:Disconnect()
         else
+            setReadOnly(conn, true)
             connection:Disable()
         end
     end
