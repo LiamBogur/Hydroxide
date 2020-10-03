@@ -4,18 +4,7 @@ if oh then
     oh.Exit()
 end
 
-local web = true
-local user = "Upbolt" -- change if you're using a fork
 local importCache = {}
-
--- local read, result = pcall(readfile, "ohaux.lua")
--- if web and read and readfile then
---     local webAux = game:HttpGetAsync('https://raw.githubusercontent.com/Upbolt/Hydroxide/revision/ohaux.lua')
-
---     if not read or webAux ~= result then
---         writefile("ohaux.lua", webAux)
---     end
--- end
 
 local function import(asset)
     if importCache[asset] then
@@ -26,8 +15,6 @@ local function import(asset)
 
     if asset:find("rbxassetid://") then
         assets = { game:GetObjects(asset)[1] }
-    elseif web then
-        assets = { webImport(asset) }
     else
         assets = { loadstring(readfile("hydroxide/" .. asset .. ".lua"), asset .. '.lua')() }
     end
